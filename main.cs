@@ -12,13 +12,13 @@ namespace ccsvify
 			{
 				string target_directory, error;
 				string[] allfiles;
-				bool quiet;
-				if (parse_input(args, out target_directory, out allfiles, out quiet, out error))
+				bool quiet, zero;
+				if (parse_input(args, out target_directory, out allfiles, out quiet, out error, out zero))
 				{
 					if (!quiet) {Console.WriteLine("Outputting to " + target_directory + "\nConverting...");}
 					foreach (string file in allfiles)
 					{
-						do_convert(file, target_directory, quiet);
+						do_convert(file, target_directory, quiet, zero);
 					}
 				}
 				else
@@ -31,7 +31,7 @@ namespace ccsvify
 				Console.WriteLine("No file specified.");
 			}
 		}
-		private static void do_convert(string input_filename, string target_directory, bool quiet)
+		private static void do_convert(string input_filename, string target_directory, bool quiet, bool zero)
 		{
 			string output_base_filename = get_output_base_filename(input_filename);
 			output_base_filename = Path.Combine(target_directory,output_base_filename);
@@ -41,9 +41,10 @@ namespace ccsvify
 			foreach (Section i in data_sections)
 			{
 				if (!quiet) {i.Summarize();Console.WriteLine();}
-				string filename = (number > 1) ? (output_base_filename + match(k, number)) : output_base_filename;
+				string filename = ((number > 1) && !zero) ? (output_base_filename + match(k, number)) : output_base_filename;
 				k++;
 				File.WriteAllLines(filename + ".csv", i.GetContents());
+				if (zero) break;
 			}
 		}
 		private static string match(int i, int n)
@@ -54,9 +55,10 @@ namespace ccsvify
 			while (output.Length + cti < ct) output += '0';
 			return output + i.ToString();
 		}
-		private static bool parse_input(string[] args, out string target_directory, out string[] all_convert_files, out bool quiet, out string error)
+		private static bool parse_input(string[] args, out string target_directory, out string[] all_convert_files, out bool quiet, out string error, out bool only0)
 		{
 			quiet = false;
+			only0 = false;
 			error = "NONE";
 			all_convert_files = new string[]{};
 			target_directory = "./";
@@ -66,6 +68,7 @@ namespace ccsvify
 				if (i.StartsWith("-"))
 				{
 					if (i == "-q") quiet = true;
+					else if (i == "-z") only0 = true;
 					else if (i.StartsWith("-odir:"))
 					{
 						string candidate_target = last<string>(i.Split(':'));
